@@ -13,6 +13,9 @@ SUBTITLE_LANGUAGES = {'zh-CN','en'}
 
 #========== Files Processing ==========#
 
+def is_path_effective(path):
+    return os.path.exists(path) and os.path.isdir(path)
+
 class VideoSubFile:
     def __init__(self, path):
         self.path = path
