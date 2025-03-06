@@ -188,6 +188,5 @@ class MediaLibrary:
         cache_file = os.path.join(self.cache_dir, 'cache_' + os.path.basename(self.media_dir) + '.json')
         with open(cache_file, 'w', encoding='utf-8') as f:
             json.dump(library_data, f, ensure_ascii=False, indent=2)
-    
-    
-    
+            
+        return library_data
