@@ -97,7 +97,7 @@ class TestMediaLibraryScan(unittest.TestCase):
         ]
         
         # 创建测试目录
-        cls.test_dir = Path(__file__).parent.parent / "test_data"
+        cls.test_dir = Path(__file__).parent / "test_data"
         cls.media_dir = cls.test_dir / "The US tvshow"
         cls.cache_dir = cls.test_dir / "cache"
     
