@@ -1,7 +1,7 @@
-# 媒体库
+# Media Library
 """
-    负责扫描处理媒体库文件，缓存读写
-    支持定时/手动扫描
+    Handles media library file scanning, cache reading and writing
+    Supports scheduled/manual scanning
 """
 
 import os
@@ -12,46 +12,44 @@ from typing import Dict, List, Optional
 
 
 class MediaLibrary:
-    def __init__(self, media_dir: str, cache_dir: str, scan_interval: int = 3600):
+    def __init__(self, media_dir: str, cache_dir: str, scan_interval: int = 3600,
+                 video_extensions: set[str] = None, subtitle_extensions: set[str] = None):
         
         self.media_dir = media_dir
         self.cache_dir = cache_dir
         self.scan_interval = scan_interval
 
-        # 视频文件扩展名
-        self.video_extensions = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv'}
-        # 字幕文件扩展名
-        self.subtitle_extensions = {'.srt', '.ass', '.ssa', '.sub', '.idx'}
+        self.video_extensions = video_extensions or {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv'}
+        self.subtitle_extensions = subtitle_extensions or {'.srt', '.ass', '.ssa', '.sub', '.idx'}
 
-        # 确保缓存目录存在
-        os.makedirs(cache_dir, exist_ok=True)
+        os.makedirs(cache_dir, exist_ok=True)   # Ensure cache directory exists
 
     def _parse_show_info(self, filename: str) -> Optional[Dict]:
-        """解析文件名中的剧集信息"""
-        # 移除扩展名
+        """Parse show information from filename"""
+        # Remove extension
         name = os.path.splitext(filename)[0]
 
-        # 常见的季集模式
+        # Common season patterns
         season_patterns = [
             r'[Ss](\d{1,2})',  # S01, s01
             r'[Ss]eason\s*(\d{1,2})',  # Season 1
             r'[Ss]eason\s*(\d{1,2})',  # Season1
         ]
 
-        # 常见的集数模式
+        # Common episode patterns
         episode_patterns = [
             r'[Ee](\d{1,3})',  # E01, e01
             r'[Ee]pisode\s*(\d{1,3})',  # Episode 1
             r'[Ee]pisode\s*(\d{1,3})',  # Episode1
         ]
 
-        # 尝试匹配季集和集数
+        # Try to match season and episode numbers
         season_match = None
         episode_match = None
         season_pos = -1
         episode_pos = -1
 
-        # 找到季集和集数的位置
+        # Find positions of season and episode
         for pattern in season_patterns:
             season_match = re.search(pattern, name)
             if season_match:
@@ -70,10 +68,10 @@ class MediaLibrary:
         season_num = int(season_match.group(1))
         episode_num = int(episode_match.group(1))
 
-        # 提取剧名（只保留季集信息之前的部分）
+        # Extract show name (keep only the part before season info)
         show_name = name[:season_pos].strip()
 
-        # 清理剧名中的特殊字符
+        # Clean special characters from show name
         show_name = re.sub(r'[._-]', ' ', show_name).strip()
 
         return {
@@ -83,25 +81,25 @@ class MediaLibrary:
         }
 
     def _find_subtitles(self, video_path: str) -> List[Dict]:
-        """查找视频对应的字幕文件"""
+        """Find subtitle files for the video"""
         video_dir = os.path.dirname(video_path)
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         subtitles = []
 
-        # 遍历目录查找字幕文件
+        # Search directory for subtitle files
         for file in os.listdir(video_dir):
             if not any(file.endswith(ext) for ext in self.subtitle_extensions):
                 continue
 
-            # 检查文件名是否与视频相关
+            # Check if filename is related to the video
             if file.startswith(video_name):
-                # 提取视频名和字幕扩展名之间的部分作为语言标识
+                # Extract language identifier between video name and subtitle extension
                 for ext in self.subtitle_extensions:
                     if file.endswith(ext):
-                        # 移除视频名和扩展名，得到语言标识
+                        # Remove video name and extension to get language identifier
                         language = file[len(video_name):-len(ext)]
                         if language.startswith('.'):
-                            language = language[1:]  # 移除开头的点
+                            language = language[1:]  # Remove leading dot
                         subtitles.append({
                             'subtitle_file': file,
                             'language': language
@@ -111,7 +109,7 @@ class MediaLibrary:
         return subtitles
 
     def scan_media(self):
-        """扫描媒体库并生成缓存"""
+        """Scan media library and generate cache"""
         library_data = {
             'library_name': os.path.basename(self.media_dir),
             'last_update': int(datetime.now().timestamp()),
@@ -119,10 +117,10 @@ class MediaLibrary:
             'shows': []
         }
 
-        # 用于临时存储剧集信息
+        # Used for temporary storage of show information
         shows_dict = {}
 
-        # 遍历媒体目录
+        # Iterate over media directory
         for root, _, files in os.walk(self.media_dir):
             for file in files:
                 if not any(file.endswith(ext) for ext in self.video_extensions):
@@ -138,35 +136,35 @@ class MediaLibrary:
                 season_num = show_info['season_number']
                 episode_num = show_info['episode_number']
 
-                # 初始化剧集数据结构
+                # Initialize show data structure
                 if show_name not in shows_dict:
                     shows_dict[show_name] = {
                         'show_name': show_name,
                         'seasons': {}
                     }
 
-                # 初始化季集数据结构
+                # Initialize season data structure
                 if season_num not in shows_dict[show_name]['seasons']:
                     shows_dict[show_name]['seasons'][season_num] = {
                         'season_number': season_num,
                         'episodes': {}
                     }
 
-                # 添加集数信息
+                # Add episode information
                 shows_dict[show_name]['seasons'][season_num]['episodes'][episode_num] = {
                     'episode_number': episode_num,
                     'video_file': os.path.splitext(file)[0],
                     'subtitles': self._find_subtitles(file_path)
                 }
 
-        # 转换数据结构为最终格式
+        # Convert data structure to final format
         for show in shows_dict.values():
             show_data = {
                 'show_name': show['show_name'],
                 'seasons': []
             }
 
-            # 对季集进行排序
+            # Sort seasons
             for season_num in sorted(show['seasons'].keys()):
                 season = show['seasons'][season_num]
                 season_data = {
@@ -174,7 +172,7 @@ class MediaLibrary:
                     'episodes': []
                 }
 
-                # 对集数进行排序
+                # Sort episodes
                 for episode_num in sorted(season['episodes'].keys()):
                     season_data['episodes'].append(
                         season['episodes'][episode_num])
@@ -183,7 +181,7 @@ class MediaLibrary:
 
             library_data['shows'].append(show_data)
 
-        # 保存缓存文件
+        # Save cache file
         cache_file = os.path.join(
             self.cache_dir, 'cache_' + os.path.basename(self.media_dir) + '.json')
         with open(cache_file, 'w', encoding='utf-8') as f:
