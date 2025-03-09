@@ -114,12 +114,10 @@ def parse_video_filename(filename: str) -> Dict:
     return None
 
 
-def match_subtitle_to_video(subtitle_file: str, video_files: List[Dict], threshold: int = 80) -> Dict:
+def match_subtitle_to_video(subtitle_info: Dict, video_files: List[Dict], threshold: int = 80) -> Dict:
     """ Match subtitle file to the most appropriate video file """
-    # get the subtitle info
-    subtitle_info = parse_video_filename(os.path.basename(subtitle_file))
     if not subtitle_info:
-        logger.debug(f"✗ Could not parse: {os.path.basename(subtitle_file)}")
+        logger.debug(f"✗ Could not parse subtitle info")
         return None
 
     logger.debug(f"→ Processing: {subtitle_info['original_name']}")
@@ -186,6 +184,13 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
     for subtitle_file in subtitle_files:
         logger.debug(
             f"→ Processing subtitle: {os.path.basename(subtitle_file)}")
+        
+        # get the subtitle info
+        subtitle_info = parse_video_filename(os.path.basename(subtitle_file))
+        if not subtitle_info:
+            logger.debug(f"✗ Could not parse subtitle file: {subtitle_file}")
+            continue
+
         for library in config['media_libraries']:
             logger.debug(f"  → Scanning library: {library['library_name']}")
 
@@ -196,7 +201,7 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
             )
 
             # Try to match subtitle with video
-            matched_video = match_subtitle_to_video(subtitle_file, video_files)
+            matched_video = match_subtitle_to_video(subtitle_info, video_files)
 
             if matched_video:
                 # Create destination path
@@ -206,24 +211,14 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
                 subtitle_ext = os.path.splitext(subtitle_file)[1]
 
                 if lang_suffix == "*":
+                    # Use the suffix from subtitle_info directly
                     new_subtitle_name = f"{video_name}{subtitle_info['suffix']}{subtitle_ext}"
-                    
-                    # orig_name = os.path.basename(subtitle_file)
-                    # orig_name_no_ext = os.path.splitext(orig_name)[0]
-
-                    # subtitle_info = parse_video_filename(
-                    #     orig_name)  # !! Repeated parsing
-                    # if subtitle_info:
-                    #     orig_suffix = orig_name_no_ext[subtitle_info['match_end']:]
-                    #     new_subtitle_name = f"{video_name}{orig_suffix}{subtitle_ext}"
-                    #     logger.debug(
-                    #         f"  → Using original suffix: {orig_suffix}")
-                    # else:
-                    #     new_subtitle_name = f"{video_name}{subtitle_ext}"
+                    logger.debug(f"  → Using original suffix: {subtitle_info['suffix']}")
                 else:
                     suffix = f".{lang_suffix}" if lang_suffix else ""
                     new_subtitle_name = f"{video_name}{suffix}{subtitle_ext}"
                     logger.debug(f"  → Using language suffix: {suffix}")
+
 
                 dest_path = os.path.join(video_dir, new_subtitle_name)
 
