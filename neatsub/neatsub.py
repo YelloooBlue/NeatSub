@@ -8,19 +8,21 @@
         4. Move and rename the subtitle file to the video file's folder
 """
 
+from typing import List, Dict
 import os
-import logging
-import shutil
+import shutil  # move and rename
 
+# Extract
 import zipfile
 import rarfile
 import py7zr
 
-from typing import List, Dict, Tuple
+# Match
 import re
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz  # fuzzy match (for show name)
 
-# Configure logging
+# Logging
+import logging
 logging.basicConfig(
     level=logging.INFO,
     # format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -28,9 +30,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Extract subtitle files from zip file
 def extract_subtitle_pack(file_path: str, temp_dir: str, allowed_extensions: List[str]) -> List[str]:
-
+    """ Extract subtitle files from zip, rar, 7z file """
     extracted_files = []
     file_ext = os.path.splitext(file_path)[1].lower()
 
@@ -59,11 +60,9 @@ def extract_subtitle_pack(file_path: str, temp_dir: str, allowed_extensions: Lis
         f"Extracted {len(extracted_files)} subtitle files from {file_path}")
     return extracted_files
 
-# Scan media library for video files
-
 
 def scan_media_library(library_path: str, video_extensions: List[str]) -> List[Dict]:
-
+    """ Scan media library for video files """
     video_files = []  # include video info and full path
 
     for root, _, files in os.walk(library_path):
@@ -78,11 +77,9 @@ def scan_media_library(library_path: str, video_extensions: List[str]) -> List[D
     logger.debug(f"Found {len(video_files)} video files in {library_path}")
     return video_files
 
-# Parse video and subtitle filename to get [show name, season, episode]
-
 
 def parse_video_filename(filename: str) -> Dict:
-
+    """ Parse video filename to get [show name, season, episode] """
     # regex patterns
     patterns = [
         r'(.+?)[\. ]S(\d{1,2})E(\d{1,2})',  # ShowName.S01E01
@@ -105,7 +102,8 @@ def parse_video_filename(filename: str) -> Dict:
                 'show_name': match.group(1).replace('.', ' ').strip(),
                 'season': int(match.group(2)),
                 'episode': int(match.group(3)),
-                'match_end': match.end(),   # end index of the match (for suffix parsing)
+                'match_end': match.end(),   # end index of the match (for suffix parsing) TODO: remove this?
+                'suffix': filename[match.end():],
                 'original_name': original_name
             }
             logger.debug(
@@ -115,11 +113,9 @@ def parse_video_filename(filename: str) -> Dict:
     logger.debug(f"✗ No pattern match for: {filename}")
     return None
 
-# Match subtitle file to the most appropriate video file
-
 
 def match_subtitle_to_video(subtitle_file: str, video_files: List[Dict], threshold: int = 80) -> Dict:
-
+    """ Match subtitle file to the most appropriate video file """
     # get the subtitle info
     subtitle_info = parse_video_filename(os.path.basename(subtitle_file))
     if not subtitle_info:
@@ -157,11 +153,9 @@ def match_subtitle_to_video(subtitle_file: str, video_files: List[Dict], thresho
 
     return best_match
 
-# Process subtitle file or pack and match with video files
-
 
 def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", overwrite: bool = False) -> List[Dict]:
-
+    """ Process subtitle file or pack and match with video files """
     results = []
 
     # Convert extensions to set for faster lookup
@@ -211,20 +205,21 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
                     os.path.basename(matched_video['full_path']))[0]
                 subtitle_ext = os.path.splitext(subtitle_file)[1]
 
-                # TODO:Handle language suffix
                 if lang_suffix == "*":
-                    orig_name = os.path.basename(subtitle_file)
-                    orig_name_no_ext = os.path.splitext(orig_name)[0]
+                    new_subtitle_name = f"{video_name}{subtitle_info['suffix']}{subtitle_ext}"
+                    
+                    # orig_name = os.path.basename(subtitle_file)
+                    # orig_name_no_ext = os.path.splitext(orig_name)[0]
 
-                    subtitle_info = parse_video_filename(
-                        orig_name)  # !! Repeated parsing
-                    if subtitle_info:
-                        orig_suffix = orig_name_no_ext[subtitle_info['match_end']:]
-                        new_subtitle_name = f"{video_name}{orig_suffix}{subtitle_ext}"
-                        logger.debug(
-                            f"  → Using original suffix: {orig_suffix}")
-                    else:
-                        new_subtitle_name = f"{video_name}{subtitle_ext}"
+                    # subtitle_info = parse_video_filename(
+                    #     orig_name)  # !! Repeated parsing
+                    # if subtitle_info:
+                    #     orig_suffix = orig_name_no_ext[subtitle_info['match_end']:]
+                    #     new_subtitle_name = f"{video_name}{orig_suffix}{subtitle_ext}"
+                    #     logger.debug(
+                    #         f"  → Using original suffix: {orig_suffix}")
+                    # else:
+                    #     new_subtitle_name = f"{video_name}{subtitle_ext}"
                 else:
                     suffix = f".{lang_suffix}" if lang_suffix else ""
                     new_subtitle_name = f"{video_name}{suffix}{subtitle_ext}"
