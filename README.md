@@ -8,8 +8,9 @@ NeatSub is an intelligent subtitle file management tool designed to streamline t
 - A Package may contain multiple languages of subtitles
 
 # Usage
+## CLI
 
-```python neatsub.py```
+```python neatsub_cli.py```
 1. Enter the directory which contains the [video] files
 2. Enter the directory which contains the [subtitle] files
 
@@ -24,3 +25,6 @@ NeatSub is an intelligent subtitle file management tool designed to streamline t
    which corresponds to the language suffix in the emby/jellyfin (e.g., .zh-CN.srt, .en.srt)
 
 5. Preview the operation details and confirm the operation
+
+## Web GUI
+[NeatSub](https://github.com/YelloooBlue/NeatSub/tree/main/neatsub)
