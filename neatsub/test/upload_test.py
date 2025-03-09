@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 
 # Global configuration - modify these values directly
 CONFIG = {
-    'server_url': 'http://localhost:5000/upload',
+    'server_url': 'http://127.0.0.1:5000/upload',
     'test_data_dir': '/Users/lanhuang/Documents/Projects/NeatSub/neatsub/test/test_data/subtitle_files',
     'lang_suffix': '*',
-    'overwrite': True
+    'overwrite': False,
+    'delay_s': 1
 }
 
 class TestUpload(unittest.TestCase):
@@ -34,8 +35,9 @@ class TestUpload(unittest.TestCase):
         if not self.test_dir.exists():
             raise FileNotFoundError(f"Test subtitle directory not found: {self.test_dir}")
 
+    # Upload a single file with parameters
     def _upload_file(self, file_path: Path, lang_suffix: str = "", overwrite: bool = False) -> dict:
-        """Helper method to upload a single file with parameters"""
+        
         with open(file_path, 'rb') as f:
             files = {'file': (file_path.name, f)}
             data = {}
@@ -65,8 +67,9 @@ class TestUpload(unittest.TestCase):
                     'error': str(e)
                 }
 
+    # Test uploading all subtitle files in the test directory
     def test_upload_files(self):
-        """Test uploading all subtitle files in the test directory"""
+
         # Get all subtitle files
         subtitle_files = []
         for ext in ['.srt', '.ass', '.ssa', '.sub', '.idx']:
@@ -89,7 +92,7 @@ class TestUpload(unittest.TestCase):
             results.append(result)
             
             # Add a small delay between uploads
-            time.sleep(0.5)
+            time.sleep(CONFIG['delay_s'])
         
         # Print summary
         logger.info("\nUpload Summary:")
