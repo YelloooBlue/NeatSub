@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeatSub - 字幕处理工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            padding: 2rem;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area.dragover {
+            border-color: #3498db;
+            background-color: #f7f9fc;
+        }
+
+        .upload-area p {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .result-area {
+            margin-top: 2rem;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result-area.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #e74c3c;
+            margin-top: 0.5rem;
+        }
+
+        .success {
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NeatSub 字幕处理工具</h1>
+        
+        <div class="upload-area" id="dropZone">
+            <p>拖拽文件到这里或点击选择文件</p>
+            <p class="small">支持的格式: .srt, .ass, .ssa, .zip, .rar</p>
+            <input type="file" id="fileInput" style="display: none">
+        </div>
+
+        <div class="form-group">
+            <label for="langSuffix">语言后缀（可选）</label>
+            <input type="text" id="langSuffix" placeholder="例如: .chs, .eng">
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="overwrite">
+            <label for="overwrite">覆盖已存在的文件</label>
+        </div>
+
+        <button id="uploadButton" disabled>上传文件</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>处理中...</p>
+        </div>
+
+        <div class="result-area" id="resultArea">
+            <h3>处理结果：</h3>
+            <pre id="resultContent"></pre>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const loading = document.getElementById('loading');
+        const resultArea = document.getElementById('resultArea');
+        const resultContent = document.getElementById('resultContent');
+        const langSuffix = document.getElementById('langSuffix');
+        const overwrite = document.getElementById('overwrite');
+
+        // 拖拽相关事件
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        // 处理文件拖放
+        dropZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateUploadButton();
+            }
+        });
+
+        // 点击上传区域触发文件选择
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件选择变化时更新按钮状态
+        fileInput.addEventListener('change', updateUploadButton);
+
+        function updateUploadButton() {
+            uploadButton.disabled = !fileInput.files.length;
+        }
+
+        // 处理上传
+        uploadButton.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('lang_suffix', langSuffix.value);
+            formData.append('overwrite', overwrite.checked);
+
+            try {
+                loading.classList.add('show');
+                resultArea.classList.remove('show');
+                uploadButton.disabled = true;
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                resultArea.classList.add('show');
+                if (response.ok) {
+                    resultContent.innerHTML = `<span class="success">✓ 处理成功</span>\n\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    resultContent.innerHTML = `<span class="error">✗ 处理失败</span>\n\n${JSON.stringify(result, null, 2)}`;
+                }
+            } catch (error) {
+                resultArea.classList.add('show');
+                resultContent.innerHTML = `<span class="error">✗ 上传失败</span>\n\n${error.message}`;
+            } finally {
+                loading.classList.remove('show');
+                uploadButton.disabled = false;
+                fileInput.value = '';
+                updateUploadButton();
+            }
+        });
+    </script>
+</body>
+</html>

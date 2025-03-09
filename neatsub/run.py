@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
 import json
 from werkzeug.utils import secure_filename
@@ -9,7 +9,7 @@ from neatsub import process_subtitle_file
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 CONFIG_FILE = '/Users/lanhuang/Documents/Projects/NeatSub/neatsub/config.json'
 
@@ -29,6 +29,10 @@ os.makedirs(config['temp_dir'], exist_ok=True)
 
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+@app.route('/')
+def index():
+    return send_from_directory('static', 'index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_subtitle():
