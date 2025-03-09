@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeatSub - 字幕处理工具</title>
+    <title>NeatSub - Subtitle Processing Tool</title>
     <style>
         * {
             margin: 0;
@@ -14,14 +14,18 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
-            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background-color: #f5f5f5;
             color: #333;
         }
 
         .container {
+            width: 100%;
             max-width: 800px;
-            margin: 0 auto;
+            margin: 2rem;
             background: white;
             padding: 2rem;
             border-radius: 10px;
@@ -42,6 +46,7 @@
             margin-bottom: 1.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            background-color: white;
         }
 
         .upload-area.dragover {
@@ -178,47 +183,47 @@
 </head>
 <body>
     <div class="container">
-        <h1>NeatSub 字幕处理工具</h1>
+        <h1>NeatSub Subtitle Processing Tool</h1>
         
         <div class="upload-area" id="dropZone">
-            <p>拖拽文件到这里或点击选择文件</p>
-            <p class="small">支持的格式: .srt, .ass, .ssa, .zip, .rar</p>
+            <p>Drag and drop files here or click to select</p>
+            <p class="small">Supported formats: .srt, .ass, .ssa, .zip, .rar</p>
             <div id="selectedFileName" class="selected-file" style="display: none;">
                 <span id="fileName"></span>
-                <button type="button" class="delete-file" id="deleteFile" title="删除文件">×</button>
+                <button type="button" class="delete-file" id="deleteFile" title="Delete file">×</button>
             </div>
             <input type="file" id="fileInput" style="display: none">
         </div>
 
         <div class="form-group">
-            <label>后缀处理方式</label>
+            <label>Suffix Processing Method</label>
             <div class="checkbox-group">
                 <input type="radio" id="keepOriginal" name="suffixOption" value="keep" checked>
-                <label for="keepOriginal">保留原后缀</label>
+                <label for="keepOriginal">Keep Original</label>
                 <input type="radio" id="customSuffix" name="suffixOption" value="custom">
-                <label for="customSuffix">自定义后缀</label>
+                <label for="customSuffix">Custom Suffix</label>
             </div>
         </div>
 
         <div class="form-group" id="langSuffixGroup" style="display: none;">
-            <label for="langSuffix">自定义后缀</label>
-            <input type="text" id="langSuffix" placeholder="例如: .chs, .eng">
+            <label for="langSuffix">Custom Suffix</label>
+            <input type="text" id="langSuffix" placeholder="e.g., .eng, .chs">
         </div>
 
         <div class="checkbox-group">
             <input type="checkbox" id="overwrite">
-            <label for="overwrite">覆盖已存在的文件</label>
+            <label for="overwrite">Overwrite existing files</label>
         </div>
 
-        <button id="uploadButton" disabled>上传文件</button>
+        <button id="uploadButton" disabled>Upload File</button>
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p>处理中...</p>
+            <p>Processing...</p>
         </div>
 
         <div class="result-area" id="resultArea">
-            <h3>处理结果：</h3>
+            <h3>Processing Result:</h3>
             <pre id="resultContent"></pre>
         </div>
     </div>
@@ -343,14 +348,14 @@
 
                 resultArea.classList.add('show');
                 if (response.ok) {
-                    resultContent.innerHTML = `<span class="success">✓ 处理成功</span>\n\n${JSON.stringify(result, null, 2)}`;
+                    resultContent.innerHTML = `<span class="success">✓ Processing Successful</span>\n\n${JSON.stringify(result, null, 2)}`;
                     clearSelectedFile(); // 上传成功后清除文件
                 } else {
-                    resultContent.innerHTML = `<span class="error">✗ 处理失败</span>\n\n${JSON.stringify(result, null, 2)}`;
+                    resultContent.innerHTML = `<span class="error">✗ Processing Failed</span>\n\n${JSON.stringify(result, null, 2)}`;
                 }
             } catch (error) {
                 resultArea.classList.add('show');
-                resultContent.innerHTML = `<span class="error">✗ 上传失败</span>\n\n${error.message}`;
+                resultContent.innerHTML = `<span class="error">✗ Upload Failed</span>\n\n${error.message}`;
             } finally {
                 loading.classList.remove('show');
                 uploadButton.disabled = false;
