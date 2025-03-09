@@ -54,6 +54,34 @@
             color: #666;
         }
 
+        .upload-area .selected-file {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background-color: #e8f4fc;
+            border-radius: 4px;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .delete-file {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            margin-left: 0.5rem;
+            width: auto;
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+
+        .delete-file:hover {
+            background: none;
+            color: #c0392b;
+        }
+
         .form-group {
             margin-bottom: 1rem;
         }
@@ -106,6 +134,7 @@
             border: 1px solid #eee;
             border-radius: 4px;
             display: none;
+            overflow-x: auto;
         }
 
         .result-area.show {
@@ -154,11 +183,25 @@
         <div class="upload-area" id="dropZone">
             <p>拖拽文件到这里或点击选择文件</p>
             <p class="small">支持的格式: .srt, .ass, .ssa, .zip, .rar</p>
+            <div id="selectedFileName" class="selected-file" style="display: none;">
+                <span id="fileName"></span>
+                <button type="button" class="delete-file" id="deleteFile" title="删除文件">×</button>
+            </div>
             <input type="file" id="fileInput" style="display: none">
         </div>
 
         <div class="form-group">
-            <label for="langSuffix">语言后缀（可选）</label>
+            <label>后缀处理方式</label>
+            <div class="checkbox-group">
+                <input type="radio" id="keepOriginal" name="suffixOption" value="keep" checked>
+                <label for="keepOriginal">保留原后缀</label>
+                <input type="radio" id="customSuffix" name="suffixOption" value="custom">
+                <label for="customSuffix">自定义后缀</label>
+            </div>
+        </div>
+
+        <div class="form-group" id="langSuffixGroup" style="display: none;">
+            <label for="langSuffix">自定义后缀</label>
             <input type="text" id="langSuffix" placeholder="例如: .chs, .eng">
         </div>
 
@@ -189,6 +232,9 @@
         const resultContent = document.getElementById('resultContent');
         const langSuffix = document.getElementById('langSuffix');
         const overwrite = document.getElementById('overwrite');
+        const selectedFileName = document.getElementById('selectedFileName');
+        const suffixOptions = document.getElementsByName('suffixOption');
+        const langSuffixGroup = document.getElementById('langSuffixGroup');
 
         // 拖拽相关事件
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -218,6 +264,7 @@
             if (files.length > 0) {
                 fileInput.files = files;
                 updateUploadButton();
+                updateSelectedFileName();
             }
         });
 
@@ -227,11 +274,50 @@
         });
 
         // 文件选择变化时更新按钮状态
-        fileInput.addEventListener('change', updateUploadButton);
+        fileInput.addEventListener('change', () => {
+            updateUploadButton();
+            updateSelectedFileName();
+        });
 
         function updateUploadButton() {
             uploadButton.disabled = !fileInput.files.length;
         }
+
+        // 显示选中的文件名
+        function updateSelectedFileName() {
+            const selectedFile = fileInput.files[0];
+            const fileName = document.getElementById('fileName');
+            if (selectedFile) {
+                fileName.textContent = `已选择: ${selectedFile.name}`;
+                selectedFileName.style.display = 'block';
+            } else {
+                selectedFileName.style.display = 'none';
+                fileName.textContent = '';
+            }
+        }
+
+        // 处理后缀选项切换
+        suffixOptions.forEach(option => {
+            option.addEventListener('change', () => {
+                langSuffixGroup.style.display = option.value === 'custom' ? 'block' : 'none';
+                if (option.value === 'keep') {
+                    langSuffix.value = '*';
+                }
+            });
+        });
+
+        // 删除选中的文件
+        function clearSelectedFile() {
+            fileInput.value = '';
+            updateSelectedFileName();
+            updateUploadButton();
+        }
+
+        // 添加删除文件按钮事件监听
+        document.getElementById('deleteFile').addEventListener('click', (e) => {
+            e.stopPropagation(); // 防止触发upload-area的点击事件
+            clearSelectedFile();
+        });
 
         // 处理上传
         uploadButton.addEventListener('click', async () => {
@@ -258,6 +344,7 @@
                 resultArea.classList.add('show');
                 if (response.ok) {
                     resultContent.innerHTML = `<span class="success">✓ 处理成功</span>\n\n${JSON.stringify(result, null, 2)}`;
+                    clearSelectedFile(); // 上传成功后清除文件
                 } else {
                     resultContent.innerHTML = `<span class="error">✗ 处理失败</span>\n\n${JSON.stringify(result, null, 2)}`;
                 }
@@ -267,8 +354,6 @@
             } finally {
                 loading.classList.remove('show');
                 uploadButton.disabled = false;
-                fileInput.value = '';
-                updateUploadButton();
             }
         });
     </script>
