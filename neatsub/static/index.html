@@ -292,7 +292,9 @@
         <div class="form-group">
             <label>Suffix Processing Method</label>
             <div class="checkbox-group">
-                <input type="radio" id="keepOriginal" name="suffixOption" value="keep" checked>
+                <input type="radio" id="removeSuffix" name="suffixOption" value="remove" checked>
+                <label for="removeSuffix">Remove Suffix</label>
+                <input type="radio" id="keepOriginal" name="suffixOption" value="keep">
                 <label for="keepOriginal">Keep Original</label>
                 <input type="radio" id="customSuffix" name="suffixOption" value="custom">
                 <label for="customSuffix">Custom Suffix</label>
@@ -441,6 +443,8 @@
                 langSuffixGroup.style.display = option.value === 'custom' ? 'block' : 'none';
                 if (option.value === 'keep') {
                     langSuffix.value = '*';
+                } else if (option.value === 'remove') {
+                    langSuffix.value = '';
                 }
             });
         });
@@ -465,7 +469,14 @@
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('lang_suffix', langSuffix.value);
+            const selectedSuffixOption = document.querySelector('input[name="suffixOption"]:checked').value;
+            if (selectedSuffixOption === 'custom') {
+                formData.append('lang_suffix', langSuffix.value);
+            } else if (selectedSuffixOption === 'keep') {
+                formData.append('lang_suffix', '*');
+            } else {
+                formData.append('lang_suffix', '');
+            }
             formData.append('overwrite', overwrite.checked);
 
             try {
