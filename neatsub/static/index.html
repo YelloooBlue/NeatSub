@@ -179,6 +179,100 @@
         .success {
             color: #27ae60;
         }
+
+        /* Settings Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 15% auto;
+            padding: 2rem;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .settings-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: auto;
+            padding: 0.75rem 1.5rem;
+            background-color: #2c3e50;
+            border-radius: 50px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .settings-button:hover {
+            background-color: #34495e;
+        }
+
+        .validation-error {
+            color: #e74c3c;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .validation-error.show {
+            display: block;
+        }
+
+        /* Media Libraries Styles */
+        .media-library {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            align-items: center;
+        }
+        .media-library input {
+            flex-grow: 1
+        }
+        .remove-library {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            width: 30px;
+        }
+        .secondary-button {
+            background-color: #95a5a6;
+            width: auto;
+            margin-top: 0.5rem;
+        }
+        .secondary-button:hover {
+            background-color: #7f8c8d;
+        }
     </style>
 </head>
 <body>
@@ -227,6 +321,46 @@
             <pre id="resultContent"></pre>
         </div>
     </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Settings</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="videoExtensions">Video File Extensions</label>
+                    <input type="text" id="videoExtensions" placeholder="e.g., mp4,mkv,avi">
+                    <div class="validation-error" id="videoExtensionsError">Please enter valid file extensions</div>
+                </div>
+                <div class="form-group">
+                    <label for="subtitleExtensions">Subtitle File Extensions</label>
+                    <input type="text" id="subtitleExtensions" placeholder="e.g., srt,ass,ssa">
+                    <div class="validation-error" id="subtitleExtensionsError">Please enter valid file extensions</div>
+                </div>
+                <div class="form-group">
+                    <label for="subtitlePackExtensions">Subtitle Pack Extensions</label>
+                    <input type="text" id="subtitlePackExtensions" placeholder="e.g., zip,rar,7z">
+                    <div class="validation-error" id="subtitlePackExtensionsError">Please enter valid file extensions</div>
+                </div>
+                <div class="form-group">
+                    <label for="tempDir">Temporary Directory</label>
+                    <input type="text" id="tempDir" placeholder="e.g., /.tmp">
+                    <div class="validation-error" id="tempDirError">Please enter a valid directory path</div>
+                </div>
+                <div class="form-group">
+                    <label>Media Libraries</label>
+                    <div id="mediaLibraries">
+                        <!-- Media libraries will be added here dynamically -->
+                    </div>
+                    <button type="button" id="addLibrary" class="secondary-button">Add Library</button>
+                </div>
+                <button type="submit">Save Settings</button>
+            </form>
+        </div>
+    </div>
+
+    <button id="settingsButton" class="settings-button">⚙️ Settings</button>
 
     <script>
         const dropZone = document.getElementById('dropZone');
@@ -359,6 +493,177 @@
             } finally {
                 loading.classList.remove('show');
                 uploadButton.disabled = false;
+            }
+        });
+
+        // Add styles for media libraries
+        const style = document.createElement('style');
+        style.textContent = `
+            .secondary-button {
+                background-color: #95a5a6;
+                width: auto;
+                margin-top: 0.5rem;
+            }
+            .secondary-button:hover {
+                background-color: #7f8c8d;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Settings Modal Functionality
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsButton = document.getElementById('settingsButton');
+        const closeModal = document.querySelector('.close-modal');
+        const settingsForm = document.getElementById('settingsForm');
+        const mediaLibrariesContainer = document.getElementById('mediaLibraries');
+        const addLibraryButton = document.getElementById('addLibrary');
+
+        // Show modal
+        settingsButton.addEventListener('click', () => {
+            settingsModal.style.display = 'block';
+            loadSettings();
+        });
+
+        // Close modal
+        closeModal.addEventListener('click', () => {
+            settingsModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.style.display = 'none';
+            }
+        });
+
+        // Create media library input fields
+        function createMediaLibraryInputs(name = '', path = '') {
+            const div = document.createElement('div');
+            div.className = 'media-library';
+            div.innerHTML = `
+                <input type="text" placeholder="Library Name" value="${name}" required>
+                <input type="text" placeholder="Library Path" value="${path}" required>
+                <button type="button" class="remove-library">×</button>
+            `;
+            return div;
+        }
+
+        // Add new media library
+        addLibraryButton.addEventListener('click', () => {
+            mediaLibrariesContainer.appendChild(createMediaLibraryInputs());
+        });
+
+        // Remove media library
+        mediaLibrariesContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-library')) {
+                e.target.parentElement.remove();
+            }
+        });
+
+        // Load settings from server
+        async function loadSettings() {
+            try {
+                const response = await fetch('/config');
+                const config = await response.json();
+                
+                // Load basic settings
+                document.getElementById('videoExtensions').value = config.video_file_extensions.map(ext => ext.replace('.', '')).join(',');
+                document.getElementById('subtitleExtensions').value = config.subtitle_file_extensions.map(ext => ext.replace('.', '')).join(',');
+                document.getElementById('subtitlePackExtensions').value = config.subtitle_pack_extensions.map(ext => ext.replace('.', '')).join(',');
+                document.getElementById('tempDir').value = config.temp_dir;
+
+                // Load media libraries
+                mediaLibrariesContainer.innerHTML = '';
+                if (config.media_libraries && config.media_libraries.length > 0) {
+                    config.media_libraries.forEach(lib => {
+                        mediaLibrariesContainer.appendChild(createMediaLibraryInputs(lib.library_name, lib.library_path));
+                    });
+                } else {
+                    mediaLibrariesContainer.appendChild(createMediaLibraryInputs());
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                alert('Failed to load settings. Please try again.');
+            }
+        }
+
+        // Validate file extensions
+        function validateExtensions(value) {
+            return /^[a-zA-Z0-9,]+$/.test(value);
+        }
+
+        // Validate directory path
+        function validateDirectory(path) {
+            return /^[a-zA-Z0-9\/\-_\.]+$/.test(path);
+        }
+
+        // Handle form submission
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset validation errors
+            document.querySelectorAll('.validation-error').forEach(error => error.classList.remove('show'));
+            
+            const videoExtensions = document.getElementById('videoExtensions').value;
+            const subtitleExtensions = document.getElementById('subtitleExtensions').value;
+            const subtitlePackExtensions = document.getElementById('subtitlePackExtensions').value;
+            const tempDir = document.getElementById('tempDir').value;
+
+            let isValid = true;
+
+            // Validate inputs
+            if (!validateExtensions(videoExtensions)) {
+                document.getElementById('videoExtensionsError').classList.add('show');
+                isValid = false;
+            }
+            if (!validateExtensions(subtitleExtensions)) {
+                document.getElementById('subtitleExtensionsError').classList.add('show');
+                isValid = false;
+            }
+            if (!validateExtensions(subtitlePackExtensions)) {
+                document.getElementById('subtitlePackExtensionsError').classList.add('show');
+                isValid = false;
+            }
+            if (!validateDirectory(tempDir)) {
+                document.getElementById('tempDirError').classList.add('show');
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Collect media libraries
+            const mediaLibraries = Array.from(mediaLibrariesContainer.children).map(div => {
+                const inputs = div.querySelectorAll('input');
+                return {
+                    library_name: inputs[0].value,
+                    library_path: inputs[1].value
+                };
+            }).filter(lib => lib.library_name && lib.library_path);
+
+            try {
+                const response = await fetch('/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        video_file_extensions: videoExtensions.split(',').map(ext => `.${ext}`),
+                        subtitle_file_extensions: subtitleExtensions.split(',').map(ext => `.${ext}`),
+                        subtitle_pack_extensions: subtitlePackExtensions.split(',').map(ext => `.${ext}`),
+                        temp_dir: tempDir,
+                        media_libraries: mediaLibraries
+                    })
+                });
+
+                if (response.ok) {
+                    settingsModal.style.display = 'none';
+                    alert('Settings saved successfully!');
+                } else {
+                    throw new Error('Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Failed to save settings. Please try again.');
             }
         });
     </script>

@@ -29,6 +29,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import ConfigManager
+from config_manager import ConfigManager
+
 
 def extract_subtitle_pack(file_path: str, temp_dir: str, allowed_extensions: List[str]) -> List[str]:
     """ Extract subtitle files from zip, rar, 7z file """
@@ -152,13 +155,13 @@ def match_subtitle_to_video(subtitle_info: Dict, video_files: List[Dict], thresh
     return best_match
 
 
-def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", overwrite: bool = False) -> List[Dict]:
+def process_subtitle_file(file_path: str, config_manager: ConfigManager, lang_suffix: str = "", overwrite: bool = False) -> List[Dict]:
     """ Process subtitle file or pack and match with video files """
     results = []
 
-    # Convert extensions to set for faster lookup
-    subtitle_exts = set(config['subtitle_file_extensions'])
-    subtitle_pack_exts = set(config['subtitle_pack_extensions'])
+    # Get extensions from config manager
+    subtitle_exts = set(config_manager.subtitle_extensions)
+    subtitle_pack_exts = set(config_manager.subtitle_pack_extensions)
 
     file_ext = os.path.splitext(file_path)[1].lower()
     subtitle_files = []
@@ -170,7 +173,7 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
         logger.debug(f"→ Extracting subtitle pack: {file_path}")
         subtitle_files.extend(
             extract_subtitle_pack(
-                file_path, config['temp_dir'], config['subtitle_file_extensions'])
+                file_path, config_manager.temp_dir, config_manager.subtitle_extensions)
         )
     # Handle single subtitle file
     elif file_ext in subtitle_exts:
@@ -191,13 +194,13 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
             logger.debug(f"✗ Could not parse subtitle file: {subtitle_file}")
             continue
 
-        for library in config['media_libraries']:
+        for library in config_manager.media_libraries:
             logger.debug(f"  → Scanning library: {library['library_name']}")
 
             # Scan video files in the library
             video_files = scan_media_library(
                 library['library_path'],
-                config['video_file_extensions']
+                config_manager.video_extensions
             )
 
             # Try to match subtitle with video
@@ -218,7 +221,6 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
                     suffix = f".{lang_suffix}" if lang_suffix else ""
                     new_subtitle_name = f"{video_name}{suffix}{subtitle_ext}"
                     logger.debug(f"  → Using language suffix: {suffix}")
-
 
                 dest_path = os.path.join(video_dir, new_subtitle_name)
 
@@ -248,11 +250,9 @@ def process_subtitle_file(file_path: str, config: Dict, lang_suffix: str = "", o
                     'status': status,
                     'subtitle_file': os.path.basename(subtitle_file),
                     'matched_video': os.path.basename(matched_video['full_path']),
-                    'library': library['library_name'],
-                    'match_score': matched_video['match_score'],
-                    'new_location': dest_path,
+                    'destination': os.path.basename(dest_path),
+                    'match_score': matched_video['match_score']
                 })
-
-                break  # Stop searching other libraries once matched
+                break  # Stop searching other libraries once we find a match
 
     return results
