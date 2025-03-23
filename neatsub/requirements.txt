@@ -1,6 +1,7 @@
 flask==3.0.0
 werkzeug==3.0.1
 fuzzywuzzy==0.18.0
+python-Levenshtein==0.23.0
 rarfile==4.0
 py7zr==0.20.8
-gunicorn
+gunicorn==23.0.0
