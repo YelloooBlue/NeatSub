@@ -20,11 +20,12 @@ import py7zr
 # Match
 import re
 from fuzzywuzzy import fuzz  # fuzzy match (for show name)
+from werkzeug.utils import secure_filename
 
 # Logging
 import logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     # format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -87,11 +88,13 @@ def parse_video_filename(filename: str) -> Dict:
     patterns = [
         r'(.+?)[\. ]S(\d{1,2})E(\d{1,2})',  # ShowName.S01E01
         r'(.+?)[\. ](\d{1,2})x(\d{1,2})',    # ShowName.1x01
-        # ShowName.Season1Episode01 or ShowName Season 1 Episode 01
+        # ShowName.Season1Episode01 or ShowName Season 1 Episode 01 (maybe useless, the secure_filename will remove the spaces)
         r'(.+?)[\. ]Season[\. ]?(\d{1,2})[\. ]?Episode[\. ]?(\d{1,2})',
         # ShowName.Season1Episode01
         r'(.+?)[\. ]Season(\d{1,2})Episode(\d{1,2})',
         r'(.+?)[\. ]S(\d{1,2})\.E(\d{1,2})',  # ShowName.S01.E01
+        # ShowName_S01E01_Additional_Info
+        r'(.+?)[_\- ]S(\d{1,2})E(\d{1,2})[_\- ]'
     ]
 
     original_name = filename
@@ -101,8 +104,14 @@ def parse_video_filename(filename: str) -> Dict:
     for pattern in patterns:
         match = re.search(pattern, filename, re.IGNORECASE)  # case insensitive
         if match:
+
+            # Align the show name with uploaded subtitle filename style
+            show_name = match.group(1).replace('.', ' ').strip()
+            secure_show_name = secure_filename(show_name)
+
             result = {
-                'show_name': match.group(1).replace('.', ' ').strip(),
+                'show_name': show_name,
+                'secure_show_name': secure_show_name,
                 'season': int(match.group(2)),
                 'episode': int(match.group(3)),
                 'match_end': match.end(),   # end index of the match (for suffix parsing) TODO: remove this?
@@ -137,10 +146,12 @@ def match_subtitle_to_video(subtitle_info: Dict, video_files: List[Dict], thresh
                 subtitle_info['episode'] == video['episode']):
 
             # Then check show name similarity (fuzzy match)
-            score = fuzz.ratio(subtitle_info['show_name'].lower(),
-                               video['show_name'].lower())
+            score = fuzz.ratio(subtitle_info['show_name'].lower(), video['secure_show_name'].lower())
+            # Other fuzzy match functions: partial_ratio, token_sort_ratio, token_set_ratio
+
             logger.debug(
-                f"  → ShowName match score with {video['original_name']}: {score}")
+                f"  → SubtitleName {subtitle_info['show_name']} vs VideoName {video['show_name']}: {score}")
+
             if score > highest_score and score >= threshold:
                 highest_score = score
                 best_match = video
