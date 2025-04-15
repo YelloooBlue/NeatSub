@@ -39,11 +39,12 @@ def upload_subtitle():
     overwrite = request.form.get('overwrite', '').lower() == 'true'  # False by default
 
     # Print parameters
-    logger.debug(f"Lang suffix: {lang_suffix}")
-    logger.debug(f"Overwrite: {overwrite}")
+    logger.info(f"Lang suffix: {lang_suffix}")
+    logger.info(f"Overwrite: {overwrite}")
 
     if file:
         filename = secure_filename(file.filename)
+        logger.info(f"Uploading file: {filename}")
         allowed_extensions = set()
         # Add both subtitle and subtitle pack extensions
         for ext in config_manager.subtitle_extensions + config_manager.subtitle_pack_extensions:

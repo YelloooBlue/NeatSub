@@ -150,7 +150,7 @@ def match_subtitle_to_video(subtitle_info: Dict, video_files: List[Dict], thresh
             # Other fuzzy match functions: partial_ratio, token_sort_ratio, token_set_ratio
 
             logger.debug(
-                f"  → SubtitleName {subtitle_info['show_name']} vs VideoName {video['show_name']}: {score}")
+                f"  → SubtitleName {subtitle_info['show_name']} vs VideoName {video['secure_show_name']}: {score}")
 
             if score > highest_score and score >= threshold:
                 highest_score = score
@@ -267,3 +267,31 @@ def process_subtitle_file(file_path: str, config_manager: ConfigManager, lang_su
                 break  # Stop searching other libraries once we find a match
 
     return results
+
+if __name__ == '__main__':
+    # Test the functions
+    test_subtitle_filename = "Shameless.US.S01E01.1080p.BluRay.x265-RARBG"
+    test_video_filename = "Shameless (US) (2011) - S01E01 - Pilot (1080p BluRay x265 afm72).mkv"
+
+    secure_subtitle_name = secure_filename(test_subtitle_filename)
+
+    print(f"Secure Subtitle Name: {secure_subtitle_name}")
+
+    subtitle_info = parse_video_filename(secure_subtitle_name)
+    print(subtitle_info)
+
+    video_info = parse_video_filename(test_video_filename)
+    print(video_info)
+
+    # Test different fuzzy match functions
+    score = fuzz.ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    print(f"ratio Score: {score}")
+
+    score = fuzz.token_set_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    print(f"token_set_ratio Score: {score}")
+
+    score = fuzz.token_sort_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    print(f"token_sort_ratio Score: {score}")
+
+    score = fuzz.partial_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    print(f"partial_ratio Score: {score}")
