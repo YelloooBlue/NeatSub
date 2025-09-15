@@ -37,6 +37,6 @@ jobs:
           context: neatsub
           push: true
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/neatsub:${{ github.event.inputs.imageTag }}
-            ${{ github.event.inputs.imageTag == 'latest' && format('{0}/neatsub:sha-{1}', secrets.DOCKER_HUB_USERNAME, github.sha) || '' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/neatsub:${{ github.event.inputs.imageTag }}
+            ${{ github.event.inputs.imageTag == 'latest' && format('{0}/neatsub:sha-{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
     
