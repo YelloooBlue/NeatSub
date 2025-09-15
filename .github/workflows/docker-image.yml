@@ -8,12 +8,10 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file neatsub/Dockerfile --tag neatsub:$(date +%s)
+      # 将构建上下文指定为 neatsub 目录，Dockerfile 在该目录下
+      run: docker build ./neatsub --tag neatsub:$(date +%s)
