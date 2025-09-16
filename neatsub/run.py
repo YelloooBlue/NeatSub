@@ -14,6 +14,8 @@ app = Flask(__name__, static_folder='static')
 # Initialize ConfigManager
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
 config_manager = ConfigManager(CONFIG_FILE)
+logger.info(f"Loaded config from {CONFIG_FILE}")
+logger.info(f"Current Config: {config_manager.get_config_info()}")
 
 # Ensure temp directory exists
 os.makedirs(config_manager.temp_dir, exist_ok=True)

@@ -12,7 +12,12 @@ class ConfigManager:
         "subtitle_file_extensions": [".srt", ".ass", ".ssa"],
         "subtitle_pack_extensions": [".zip", ".rar", ".7z"],
         "temp_dir": "/.tmp",
-        "media_libraries": []
+        "media_libraries": [
+            {
+                "library_name": "Default Library",
+                "library_path": "/media"
+            }
+        ]
     }
 
     def __init__(self, config_path: str):
@@ -117,6 +122,9 @@ class ConfigManager:
         ]
         self._save_config(self._config)
 
+    def get_config_info(self) -> str:
+        """Get a string representation of the current configuration"""
+        return json.dumps(self._config, indent=4)
 
 
 
