@@ -109,15 +109,29 @@ def parse_video_filename(filename: str) -> Dict:
             show_name = match.group(1).replace('.', ' ').strip()
             secure_show_name = secure_filename(show_name)
 
+            # extract year
+            clean_show_name = re.sub(r'[^\w\s]', ' ', show_name) # remove special characters
+            year_re = re.search(r'(?<!\d)(\d{4})(?![\w])', show_name) # match 4 digits not preceded or followed by a digit
+            year = None
+            if year_re:
+                year = year_re.group(1)
+                clean_show_name = re.sub(r'\b' + year + r'\b', '', clean_show_name).strip() # remove year
+                clean_show_name = re.sub(r'\s+', ' ', clean_show_name).strip() # normalize spaces
+                
             result = {
                 'show_name': show_name,
                 'secure_show_name': secure_show_name,
+                'clean_show_name': clean_show_name,
                 'season': int(match.group(2)),
                 'episode': int(match.group(3)),
                 'match_end': match.end(),   # end index of the match (for suffix parsing) TODO: remove this?
                 'suffix': filename[match.end():],
                 'original_name': original_name
             }
+
+            if year:
+                result['year'] = year
+
             logger.debug(
                 f"✓ Pattern matched: {match.group(1).strip()} S{match.group(2)}E{match.group(3)}")
             return result
@@ -146,11 +160,18 @@ def match_subtitle_to_video(subtitle_info: Dict, video_files: List[Dict], thresh
                 subtitle_info['episode'] == video['episode']):
 
             # Then check show name similarity (fuzzy match)
-            score = fuzz.ratio(subtitle_info['show_name'].lower(), video['secure_show_name'].lower())
+            # score = fuzz.ratio(subtitle_info['show_name'].lower(), video['secure_show_name'].lower())
+            score = fuzz.ratio(subtitle_info['clean_show_name'].lower(), video['clean_show_name'].lower())
             # Other fuzzy match functions: partial_ratio, token_sort_ratio, token_set_ratio
 
+            # if Year exists, increase score if year matches
+            if 'year' in subtitle_info and 'year' in video:
+                if subtitle_info['year'] == video['year']:
+                    score += 10  # boost score by 10 if year matches
+                    logger.debug(f"  → Year matched: {subtitle_info['year']}")
+
             logger.debug(
-                f"  → SubtitleName {subtitle_info['show_name']} vs VideoName {video['secure_show_name']}: {score}")
+                f"  → SubtitleName 「{subtitle_info['clean_show_name']}」 vs VideoName 「{video['clean_show_name']}」: {score}")
 
             if score > highest_score and score >= threshold:
                 highest_score = score
@@ -270,8 +291,8 @@ def process_subtitle_file(file_path: str, config_manager: ConfigManager, lang_su
 
 if __name__ == '__main__':
     # Test the functions
-    test_subtitle_filename = "Shameless.US.S01E01.1080p.BluRay.x265-RARBG"
-    test_video_filename = "Shameless (US) (2011) - S01E01 - Pilot (1080p BluRay x265 afm72).mkv"
+    test_subtitle_filename = "Slow.Horses.S04E06.Hello.Goodbye.2160p.ATVP.WEB-DL.DDP5.1.H.265-NTb.ass"
+    test_video_filename = "Slow Horses (2022) - S04E06 - Hello Goodbye (1080p ATVP WEB-DL x265 Ghost).mkv"
 
     secure_subtitle_name = secure_filename(test_subtitle_filename)
 
@@ -284,14 +305,14 @@ if __name__ == '__main__':
     print(video_info)
 
     # Test different fuzzy match functions
-    score = fuzz.ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    score = fuzz.ratio(subtitle_info['clean_show_name'].lower(), video_info['clean_show_name'].lower())
     print(f"ratio Score: {score}")
 
-    score = fuzz.token_set_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    score = fuzz.token_set_ratio(subtitle_info['clean_show_name'].lower(), video_info['clean_show_name'].lower())
     print(f"token_set_ratio Score: {score}")
 
-    score = fuzz.token_sort_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    score = fuzz.token_sort_ratio(subtitle_info['clean_show_name'].lower(), video_info['clean_show_name'].lower())
     print(f"token_sort_ratio Score: {score}")
 
-    score = fuzz.partial_ratio(subtitle_info['show_name'].lower(), video_info['secure_show_name'].lower())
+    score = fuzz.partial_ratio(subtitle_info['clean_show_name'].lower(), video_info['clean_show_name'].lower())
     print(f"partial_ratio Score: {score}")
