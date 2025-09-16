@@ -72,6 +72,7 @@ def upload_subtitle():
 
 @app.route("/config", methods=["GET"])
 def get_config():
+    config_manager.load()
     return jsonify({
         "video_file_extensions": config_manager.video_extensions,
         "subtitle_file_extensions": config_manager.subtitle_extensions,
@@ -98,6 +99,7 @@ def update_config():
         config_manager.subtitle_pack_extensions = data["subtitle_pack_extensions"]
         config_manager.temp_dir = data["temp_dir"]
         config_manager.media_libraries = data["media_libraries"]
+        config_manager.save()  # Save the updated config to file
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

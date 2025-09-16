@@ -20,9 +20,13 @@ class ConfigManager:
         ]
     }
 
-    def __init__(self, config_path: str):
-        self._config_path = config_path
-        self._config = self._load_or_create_config()
+    def __init__(self, config_path: str = None):
+        """Initialize ConfigManager, load existing config or create default one"""
+        if config_path:
+            self._config_path = config_path
+        else:
+            self._config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+        self.load()
 
     def _load_or_create_config(self) -> Dict:
         """Load existing config or create new one with default settings"""
@@ -43,6 +47,15 @@ class ConfigManager:
                 json.dump(config, f, indent=4)
         except Exception as e:
             raise Exception(f"Error saving config: {str(e)}")
+        
+    def load(self) -> Dict:
+        """Public method to reload config from file"""
+        self._config = self._load_or_create_config()
+        return self._config
+        
+    def save(self) -> None:
+        """Public method to save current config state"""
+        self._save_config(self._config)
 
     @property
     def version(self) -> str:
@@ -58,8 +71,7 @@ class ConfigManager:
     def video_extensions(self, extensions: List[str]) -> None:
         """Set supported video file extensions"""
         self._config["video_file_extensions"] = extensions
-        self._save_config(self._config)
-
+        
     @property
     def subtitle_extensions(self) -> List[str]:
         """Get supported subtitle file extensions"""
@@ -69,8 +81,7 @@ class ConfigManager:
     def subtitle_extensions(self, extensions: List[str]) -> None:
         """Set supported subtitle file extensions"""
         self._config["subtitle_file_extensions"] = extensions
-        self._save_config(self._config)
-
+        
     @property
     def subtitle_pack_extensions(self) -> List[str]:
         """Get supported subtitle pack file extensions"""
@@ -80,8 +91,7 @@ class ConfigManager:
     def subtitle_pack_extensions(self, extensions: List[str]) -> None:
         """Set supported subtitle pack file extensions"""
         self._config["subtitle_pack_extensions"] = extensions
-        self._save_config(self._config)
-
+        
     @property
     def temp_dir(self) -> str:
         """Get temporary directory path"""
@@ -91,8 +101,7 @@ class ConfigManager:
     def temp_dir(self, temp_dir: str) -> None:
         """Set temporary directory path"""
         self._config["temp_dir"] = temp_dir
-        self._save_config(self._config)
-
+        
     @property
     def media_libraries(self) -> List[Dict]:
         """Get media library configurations"""
@@ -102,8 +111,7 @@ class ConfigManager:
     def media_libraries(self, libraries: List[Dict]) -> None:
         """Set media library configurations"""
         self._config["media_libraries"] = libraries
-        self._save_config(self._config)
-
+        
     def add_media_library(self, library_name: str, library_path: str) -> None:
         """Add a new media library"""
         if "media_libraries" not in self._config:
@@ -112,16 +120,14 @@ class ConfigManager:
             "library_name": library_name,
             "library_path": library_path
         })
-        self._save_config(self._config)
-
+        
     def remove_media_library(self, library_name: str) -> None:
         """Remove a media library by name"""
         self._config["media_libraries"] = [
             lib for lib in self._config["media_libraries"]
             if lib["library_name"] != library_name
         ]
-        self._save_config(self._config)
-
+        
     def get_config_info(self) -> str:
         """Get a string representation of the current configuration"""
         return json.dumps(self._config, indent=4)
